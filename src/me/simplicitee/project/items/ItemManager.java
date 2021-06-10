@@ -32,6 +32,7 @@ public final class ItemManager {
 	private static final NamespacedKey namespace = new NamespacedKey(JavaPlugin.getPlugin(ItemsPlugin.class), "itemid");
 	private static final Map<String, BendingItem> NAME_CACHE = new HashMap<>();
 	private static final Map<Integer, BendingItem> ID_CACHE = new HashMap<>();
+	private static final Map<Player, BendingItem> EQUIPPED = new HashMap<>();
 	
 	private static final String DISPLAY_PATH = "Display";
 	private static final String LORE_PATH = "Lore";
@@ -39,6 +40,22 @@ public final class ItemManager {
 	private static final String DURABILITY_PATH = "Durability";
 	private static final String USAGE_PATH = "Usage";
 	private static final String ELEMENT_PATH = "Element";
+	
+	public static void equip(Player player, BendingItem item) {
+		EQUIPPED.put(player, item);
+	}
+	
+	public static void unequip(Player player) {
+		EQUIPPED.remove(player);
+	}
+	
+	public static boolean equipped(Player player) {
+		return EQUIPPED.containsKey(player);
+	}
+	
+	public static boolean matches(Player player, ItemStack item) {
+		return EQUIPPED.containsKey(player) && EQUIPPED.get(player).isSimilar(item);
+	}
 	
 	public static List<BendingItem> listActive(Player player) {
 		List<BendingItem> actives = new ArrayList<>();

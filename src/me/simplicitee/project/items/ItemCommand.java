@@ -10,6 +10,7 @@ import org.bukkit.entity.Player;
 
 import com.projectkorra.projectkorra.command.PKCommand;
 
+import me.simplicitee.project.items.BendingItem.Usage;
 import me.simplicitee.project.items.gui.ItemGui;
 import net.md_5.bungee.api.ChatColor;
 
@@ -18,7 +19,7 @@ public class ItemCommand extends PKCommand {
 	private ItemGui gui;
 	
 	public ItemCommand() {
-		super("item", "/bending item <give <item> [player] / list / gui>", "Do many things with bending items!", new String[] {"item"});
+		super("item", "/bending item <give <item> [player] / list / gui / stats <item>>", "Do many things with bending items!", new String[] {"item"});
 		gui = new ItemGui(ItemManager.listItems());
 	}
 
@@ -29,7 +30,9 @@ public class ItemCommand extends PKCommand {
 		}
 		
 		if (args.get(0).equalsIgnoreCase("give")) {
-			if (args.size() < 2) {
+			if (!hasPermission(sender, "give")) {
+				return;
+			} else if (args.size() < 2) {
 				sender.sendMessage(ChatColor.RED + "Not enough arguments!");
 				return;
 			}
@@ -61,7 +64,9 @@ public class ItemCommand extends PKCommand {
 			
 			sender.sendMessage(ItemManager.listItems().stream().map((b) -> "- " + ChatColor.BOLD + b.getInternalName() + ChatColor.RESET + " [" + b.getDisplayName() + ChatColor.RESET + "]").collect(Collectors.toList()).toArray(new String[0]));
 		} else if (args.get(0).equalsIgnoreCase("gui")) {
-			if (!(sender instanceof Player)) {
+			if (!hasPermission(sender, "gui")) {
+				return;
+			} else if (!(sender instanceof Player)) {
 				sender.sendMessage(ChatColor.RED + "Player only command!");
 				return;
 			} else if (args.size() > 1) {
@@ -98,6 +103,35 @@ public class ItemCommand extends PKCommand {
 			stats.add("Usage: " + item.getUsage().toString());
 			stats.addAll(item.listMods());
 			sender.sendMessage(stats.toArray(new String[0]));
+		} else if (args.get(0).equalsIgnoreCase("equip")) {
+			if (!hasPermission(sender, "equip")) {
+				return;
+			} else if (!(sender instanceof Player)) {
+				sender.sendMessage(ChatColor.RED + "Player only command!");
+				return;
+			} else if (args.size() > 1) {
+				sender.sendMessage(ChatColor.RED + "Too many arguments!");
+				return;
+			}
+			
+			Player player = (Player) sender;
+			BendingItem item = ItemManager.get(player.getInventory().getItemInMainHand());
+			
+			if (item == null) {
+				sender.sendMessage(ChatColor.RED + "Invalid bending item!");
+				return;
+			} else if (item.getUsage() != Usage.HOLDING) {
+				sender.sendMessage(ChatColor.RED + "Can only equip items used by HOLDING!");
+				return;
+			}
+			
+			if (!ItemManager.equipped(player)) {
+				sender.sendMessage(ChatColor.GREEN + "Equipped");
+				ItemManager.equip(player, item);
+			} else {
+				sender.sendMessage(ChatColor.GREEN + "Unequipped");
+				ItemManager.unequip(player);
+			}
 		} else {
 			sender.sendMessage(ChatColor.RED + "Unknown argument given!");
 			return;
