@@ -13,8 +13,11 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -29,7 +32,8 @@ public final class ItemManager {
 
 	private ItemManager() {}
 	
-	private static final NamespacedKey namespace = new NamespacedKey(JavaPlugin.getPlugin(ItemsPlugin.class), "itemid");
+	private static final NamespacedKey ID_KEY = new NamespacedKey(JavaPlugin.getPlugin(ItemsPlugin.class), "itemid");
+	private static final NamespacedKey USES_KEY = new NamespacedKey(JavaPlugin.getPlugin(ItemsPlugin.class), "itemuses");
 	private static final Map<String, BendingItem> NAME_CACHE = new HashMap<>();
 	private static final Map<Integer, BendingItem> ID_CACHE = new HashMap<>();
 	private static final Map<Player, BendingItem> EQUIPPED = new HashMap<>();
@@ -40,6 +44,10 @@ public final class ItemManager {
 	private static final String DURABILITY_PATH = "Durability";
 	private static final String USAGE_PATH = "Usage";
 	private static final String ELEMENT_PATH = "Element";
+	private static final String UNBREAKABLE_PATH = "Unbreakable";
+	private static final String ENCHANTS_PATH = "Enchants";
+	private static final String FLAGS_PATH = "Flags";
+	private static final String USES_PATH = "Uses";
 	
 	public static void equip(Player player, BendingItem item) {
 		EQUIPPED.put(player, item);
@@ -55,6 +63,34 @@ public final class ItemManager {
 	
 	public static boolean matches(Player player, ItemStack item) {
 		return EQUIPPED.containsKey(player) && EQUIPPED.get(player).isSimilar(item);
+	}
+	
+	public static void modify(CoreAbility ability) {
+		Player player = ability.getPlayer();
+		
+		BendingItem main = get(player.getInventory().getItemInMainHand()), off = get(player.getInventory().getItemInOffHand());
+		
+		if (main != null && main.getUsage() == Usage.HOLDING) {
+			main.applyMods(ability, player.getInventory().getItemInMainHand());
+		}
+		
+		if (off != null && off.getUsage() == Usage.HOLDING) {
+			off.applyMods(ability, player.getInventory().getItemInOffHand());
+		}
+		
+		for (ItemStack is : player.getInventory().getArmorContents()) {
+			BendingItem item = get(is);
+			if (item != null && (item.getUsage() == Usage.WEARING || item.getUsage() == Usage.POSSESS)) {
+				item.applyMods(ability, is);
+			}
+		}
+		
+		for (ItemStack is : player.getInventory().getStorageContents()) {
+			BendingItem item = get(is);
+			if (item != null && item.getUsage() == Usage.POSSESS) {
+				item.applyMods(ability, is);
+			}
+		}
 	}
 	
 	public static List<BendingItem> listActive(Player player) {
@@ -96,14 +132,32 @@ public final class ItemManager {
 	}
 	
 	public static BendingItem get(ItemStack item) {
-		BendingItem bItem = ID_CACHE.get(getID(item));
+		int id = getID(item);
+		BendingItem bItem = ID_CACHE.get(id);
 		
-		if (bItem != null && !bItem.isSimilar(item)) {
+		if ((bItem == null && id > -1) || (bItem != null && !bItem.isSimilar(item))) {
 			removeID(item);
 			return null;
 		}
 		
 		return bItem;
+	}
+	
+	public static void use(Player player, ItemStack item) {
+		if (!item.hasItemMeta() || !item.getItemMeta().getPersistentDataContainer().has(USES_KEY, PersistentDataType.INTEGER)) {
+			return;
+		}
+		
+		ItemMeta meta = item.getItemMeta();
+		int uses = meta.getPersistentDataContainer().get(USES_KEY, PersistentDataType.INTEGER);
+		if (uses == 1) {
+			player.getInventory().remove(item);
+		} else {
+			meta.getPersistentDataContainer().set(USES_KEY, PersistentDataType.INTEGER, uses - 1);
+			item.setItemMeta(meta);
+		}
+		
+		player.updateInventory();
 	}
 	
 	public static List<BendingItem> listItems() {
@@ -154,7 +208,7 @@ public final class ItemManager {
 		ItemStack item = new ItemStack(mat);
 		ItemMeta meta = item.getItemMeta();
 		List<String> lore = new ArrayList<>();
-		lore.add(ChatColor.DARK_GRAY + "Usage: " + usage.toString());
+		lore.add(ChatColor.DARK_GRAY + (ChatColor.ITALIC + "Usage: ") + usage.toString());
 		
 		if (config.contains(DISPLAY_PATH)) {
 			meta.setDisplayName(ChatColor.translateAlternateColorCodes('&', config.getString(DISPLAY_PATH)));
@@ -166,14 +220,47 @@ public final class ItemManager {
 			lore.addAll(config.getStringList(LORE_PATH).stream().map((s) -> ChatColor.translateAlternateColorCodes('&', s)).collect(Collectors.toList()));
 		}
 		
-		/*
-		if (config.contains(DURABILITY_PATH) && meta instanceof Damageable) {
-			((Damageable) meta).setDamage(config.getInt(DURABILITY_PATH));
+		if (config.contains(UNBREAKABLE_PATH)) {
+			meta.setUnbreakable(config.getBoolean(UNBREAKABLE_PATH));
 		}
-		*/
+		
+		if (config.contains(DURABILITY_PATH) && meta instanceof Damageable) {
+			((Damageable) meta).setDamage(-(config.getInt(DURABILITY_PATH) - mat.getMaxDurability()));
+		}
+		
+		if (config.contains(USES_PATH)) {
+			meta.getPersistentDataContainer().set(USES_KEY, PersistentDataType.INTEGER, config.getInt(USES_PATH));
+		}
+		
+		if (config.contains(ENCHANTS_PATH)) {
+			for (String enchant : config.getStringList(ENCHANTS_PATH)) {
+				String[] split = enchant.split(":");
+				
+				if (split.length != 2) {
+					continue;
+				}
+				
+				try {
+					meta.addEnchant(Enchantment.getByKey(NamespacedKey.minecraft(split[0])), Integer.parseInt(split[1]), true);
+				} catch (NumberFormatException e) {
+					JavaPlugin.getPlugin(ItemsPlugin.class).getLogger().warning("Unable to parse integer from '" + enchant + "' in enchants on item '" + name + "', ignoring.");
+				} catch (Exception e) {
+					JavaPlugin.getPlugin(ItemsPlugin.class).getLogger().warning("Unable to parse enchant from '" + enchant + "' in enchants on item '" + name + "', ignoring.");
+				}
+			}
+		}
+		
+		if (config.contains(FLAGS_PATH)) {
+			for (String flag : config.getStringList(FLAGS_PATH)) {
+				try {
+					meta.addItemFlags(ItemFlag.valueOf(flag.toUpperCase()));
+				} catch (Exception e) {}
+			}
+		}
+		
 		int id = name.hashCode();
 		meta.setLore(lore);
-		meta.getPersistentDataContainer().set(namespace, PersistentDataType.INTEGER, id);
+		meta.getPersistentDataContainer().set(ID_KEY, PersistentDataType.INTEGER, id);
 		item.setItemMeta(meta);
 		
 		Map<CoreAbility, List<BendingModifier>> mods = null;
@@ -214,23 +301,32 @@ public final class ItemManager {
 	private static int getID(ItemStack item) {
 		int id = -1;
 		
-		if (item != null && item.hasItemMeta() && item.getItemMeta().getPersistentDataContainer().has(namespace, PersistentDataType.INTEGER)) {
-			id = item.getItemMeta().getPersistentDataContainer().get(namespace, PersistentDataType.INTEGER);
+		if (item != null && item.hasItemMeta() && item.getItemMeta().getPersistentDataContainer().has(ID_KEY, PersistentDataType.INTEGER)) {
+			id = item.getItemMeta().getPersistentDataContainer().get(ID_KEY, PersistentDataType.INTEGER);
 		}
 		
 		return id;
 	}
 	
 	private static void removeID(ItemStack item) {
-		if (item != null && item.hasItemMeta() && item.getItemMeta().getPersistentDataContainer().has(namespace, PersistentDataType.INTEGER)) {
-			item.getItemMeta().getPersistentDataContainer().remove(namespace);
+		if (item == null || !item.hasItemMeta()) {
+			return;
 		}
+		
+		ItemMeta meta = item.getItemMeta();
+		
+		if (meta.getPersistentDataContainer().has(ID_KEY, PersistentDataType.INTEGER)) {
+			meta.getPersistentDataContainer().remove(ID_KEY);
+		}
+		
+		item.setItemMeta(meta);
 	}
 	
 	private static void configureDefaults(File folder) {
 		File example1 = new File(folder, "Raavaxe.yml");
 		File example2 = new File(folder, "Vaatuhelm.yml");
 		File example3 = new File(folder, "Meteorite.yml");
+		File example4 = new File(folder, "Timesword.yml");
 		
 		try {
 			example1.createNewFile();
@@ -248,6 +344,7 @@ public final class ItemManager {
 		config1.addDefault(USAGE_PATH, Usage.HOLDING.toString());
 		config1.addDefault(DURABILITY_PATH, 2000);
 		config1.addDefault(LORE_PATH, Arrays.asList("&dAn axe graced by Raava and", "&dimbued with spiritual energy that", "&dincreases bending damage!"));
+		config1.addDefault(FLAGS_PATH, Arrays.asList(ItemFlag.HIDE_ATTRIBUTES.toString()));
 		config1.addDefault("Mods.Base.Damage", "x2");
 		
 		FileConfiguration config2 = YamlConfiguration.loadConfiguration(example2);
@@ -278,10 +375,27 @@ public final class ItemManager {
 		config3.addDefault("Mods.EarthArmor.GoldHearts", "+2");
 		config3.addDefault("Mods.EarthSmash.FlightDuration", "+3000");
 		
+		FileConfiguration config4 = YamlConfiguration.loadConfiguration(example4);
+		config4.options().copyDefaults(true);
+		config4.addDefault(DISPLAY_PATH, "&6Sword of Time");
+		config4.addDefault(MATERIAL_PATH, Material.WOODEN_SWORD.toString());
+		config4.addDefault(ELEMENT_PATH, Element.AVATAR.getName());
+		config4.addDefault(USAGE_PATH, Usage.HOLDING.toString());
+		config4.addDefault(UNBREAKABLE_PATH, true);
+		config4.addDefault(LORE_PATH, Arrays.asList("&7A sword crafted out of a", "&7branch from the Tree of Time,", "&7it absorbed enough spiritual", "&7energy to be indestructible"));
+		config4.addDefault(FLAGS_PATH, Arrays.asList(ItemFlag.HIDE_ATTRIBUTES.toString(), ItemFlag.HIDE_ENCHANTS.toString()));
+		config4.addDefault("Mods.Base.Damage", "x2");
+		config4.addDefault("Mods.Base.Speed", "x1.4");
+		config4.addDefault("Mods.Base.Duration", "x1.5");
+		config4.addDefault("Mods.Base.Cooldown", "x0.5");
+		config4.addDefault("Mods.Base.ChargeTime", "x0.5");
+		config4.addDefault(ENCHANTS_PATH, Arrays.asList(Enchantment.SWEEPING_EDGE.getKey().getKey() + ":4"));
+		
 		try {
 			config1.save(example1);
 			config2.save(example2);
 			config3.save(example3);
+			config4.save(example4);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

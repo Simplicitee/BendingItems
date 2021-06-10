@@ -4,10 +4,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
 
 import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 
 import com.projectkorra.projectkorra.Element;
 import com.projectkorra.projectkorra.ability.CoreAbility;
@@ -39,13 +41,9 @@ public class BendingItem implements Listener {
 	public String getInternalName() {
 		return name;
 	}
-
-	public ItemStack getStack() {
-		return item.clone();
-	}
 	
 	public boolean isSimilar(ItemStack item) {
-		if (!item.hasItemMeta()) {
+		if (!item.hasItemMeta() || !item.getItemMeta().hasDisplayName()) {
 			return false;
 		}
 		
@@ -64,6 +62,16 @@ public class BendingItem implements Listener {
 		return item.getItemMeta().getDisplayName();
 	}
 	
+	public ItemStack newStack() {
+		ItemStack stack = item.clone();
+		ItemMeta meta = stack.getItemMeta();
+		List<String> lore = meta.getLore();
+		lore.add(1, randomString());
+		meta.setLore(lore);
+		stack.setItemMeta(meta);
+		return stack;
+	}
+	
 	public List<String> listMods() {
 		List<String> mods = new ArrayList<>();
 		mods.add("Stats:");
@@ -76,7 +84,7 @@ public class BendingItem implements Listener {
 		return mods;
 	}
 	
-	public void applyMods(CoreAbility abil) {
+	public void applyMods(CoreAbility abil, ItemStack stack) {
 		if (mods == null) {
 			return;
 		} else if (element != Element.AVATAR && element != abil.getElement()) {
@@ -99,14 +107,21 @@ public class BendingItem implements Listener {
 				continue;
 			}
 		}
+		
+		ItemManager.use(abil.getPlayer(), stack);
 	}
 	
 	public void give(Player player) {
-		player.getInventory().addItem(item);
+		player.getInventory().addItem(newStack());
 		player.updateInventory();
 	}
 	
 	public DisplayItem toDisplay() {
 		return new DisplayItem(item, (p, g) -> give(p));
+	}
+	
+	private static String randomString() {
+		String random = String.valueOf(ThreadLocalRandom.current().nextInt(Integer.MAX_VALUE));
+		return "§" + String.join("§", random.split(""));
 	}
 }

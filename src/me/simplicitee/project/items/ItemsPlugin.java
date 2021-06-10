@@ -31,9 +31,7 @@ public class ItemsPlugin extends JavaPlugin implements Listener {
 	
 	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
 	public void onAbilityStart(AbilityStartEvent event) {
-		for (BendingItem item : ItemManager.listActive(event.getAbility().getPlayer())) {
-			item.applyMods((CoreAbility) event.getAbility());
-		}
+		ItemManager.modify((CoreAbility) event.getAbility());
 	}
 	
 	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
