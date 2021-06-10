@@ -15,14 +15,12 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import com.projectkorra.projectkorra.Element;
 import com.projectkorra.projectkorra.ability.CoreAbility;
-import com.projectkorra.projectkorra.attribute.AttributeModifier;
 
 import me.simplicitee.project.items.BendingItem.Usage;
 import net.md_5.bungee.api.ChatColor;
@@ -34,7 +32,6 @@ public final class ItemManager {
 	private static final NamespacedKey namespace = new NamespacedKey(JavaPlugin.getPlugin(ItemsPlugin.class), "itemid");
 	private static final Map<String, BendingItem> NAME_CACHE = new HashMap<>();
 	private static final Map<Integer, BendingItem> ID_CACHE = new HashMap<>();
-	private static final Map<Player, List<BendingItem>> ACTIVE_ITEMS = new HashMap<>();
 	
 	private static final String DISPLAY_PATH = "Display";
 	private static final String LORE_PATH = "Lore";
@@ -43,20 +40,34 @@ public final class ItemManager {
 	private static final String USAGE_PATH = "Usage";
 	private static final String ELEMENT_PATH = "Element";
 	
-	public static void active(Player player, BendingItem item) {
-		ACTIVE_ITEMS.computeIfAbsent(player, (p) -> new ArrayList<>()).add(item);
-	}
-	
-	public static void remove(Player player, BendingItem item) {
-		ACTIVE_ITEMS.computeIfPresent(player, (p, l) -> {l.remove(item); return l;});
-	}
-	
-	public static void modify(CoreAbility ability) {
-		if (ACTIVE_ITEMS.containsKey(ability.getPlayer())) {
-			for (BendingItem item : ACTIVE_ITEMS.get(ability.getPlayer())) {
-				item.applyMods(ability);
+	public static List<BendingItem> listActive(Player player) {
+		List<BendingItem> actives = new ArrayList<>();
+		
+		for (ItemStack is : player.getInventory().getArmorContents()) {
+			BendingItem item = get(is);
+			if (item != null && (item.getUsage() == Usage.WEARING || item.getUsage() == Usage.POSSESS)) {
+				actives.add(item);
 			}
 		}
+		
+		for (ItemStack is : player.getInventory().getStorageContents()) {
+			BendingItem item = get(is);
+			if (item != null && item.getUsage() == Usage.POSSESS) {
+				actives.add(item);
+			}
+		}
+		
+		BendingItem main = get(player.getInventory().getItemInMainHand()), off = get(player.getInventory().getItemInOffHand());
+		
+		if (main != null && main.getUsage() == Usage.HOLDING) {
+			actives.add(main);
+		}
+		
+		if (off != null && off.getUsage() == Usage.HOLDING) {
+			actives.add(off);
+		}
+		
+		return actives;
 	}
 	
 	public static BendingItem get(String name) {
@@ -125,6 +136,8 @@ public final class ItemManager {
 		
 		ItemStack item = new ItemStack(mat);
 		ItemMeta meta = item.getItemMeta();
+		List<String> lore = new ArrayList<>();
+		lore.add(ChatColor.DARK_GRAY + "Usage: " + usage.toString());
 		
 		if (config.contains(DISPLAY_PATH)) {
 			meta.setDisplayName(ChatColor.translateAlternateColorCodes('&', config.getString(DISPLAY_PATH)));
@@ -133,14 +146,16 @@ public final class ItemManager {
 		}
 		
 		if (config.contains(LORE_PATH)) {
-			meta.setLore(config.getStringList(LORE_PATH).stream().map((s) -> ChatColor.translateAlternateColorCodes('&', s)).collect(Collectors.toList()));
+			lore.addAll(config.getStringList(LORE_PATH).stream().map((s) -> ChatColor.translateAlternateColorCodes('&', s)).collect(Collectors.toList()));
 		}
 		
+		/*
 		if (config.contains(DURABILITY_PATH) && meta instanceof Damageable) {
 			((Damageable) meta).setDamage(config.getInt(DURABILITY_PATH));
 		}
-		
+		*/
 		int id = name.hashCode();
+		meta.setLore(lore);
 		meta.getPersistentDataContainer().set(namespace, PersistentDataType.INTEGER, id);
 		item.setItemMeta(meta);
 		
@@ -163,7 +178,7 @@ public final class ItemManager {
 			}
 		}
 		
-		BendingItem bItem = new BendingItem(item, usage, element, mods);
+		BendingItem bItem = new BendingItem(name, item, usage, element, mods);
 		NAME_CACHE.put(name, bItem);
 		ID_CACHE.put(id, bItem);
 		return bItem;
@@ -173,8 +188,7 @@ public final class ItemManager {
 		List<BendingModifier> mods = new ArrayList<>();
 		
 		for (String key : section.getKeys(false)) {
-			String value = section.getString(key);
-			mods.add(new BendingModifier(key, value.charAt(0) == 'x' ? AttributeModifier.MULTIPLICATION : AttributeModifier.ADDITION, Double.parseDouble(value.substring(1, value.length()))));
+			mods.add(new BendingModifier(key, section.getString(key)));
 		}
 		
 		return mods;

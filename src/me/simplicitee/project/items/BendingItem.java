@@ -13,30 +13,43 @@ import com.projectkorra.projectkorra.Element;
 import com.projectkorra.projectkorra.ability.CoreAbility;
 import com.projectkorra.projectkorra.attribute.AttributePriority;
 
+import me.simplicitee.project.items.gui.DisplayItem;
+import net.md_5.bungee.api.ChatColor;
+
 public class BendingItem implements Listener {
 
 	public enum Usage {
 		WEARING, HOLDING, POSSESS;
 	}
 	
+	private String name;
 	private ItemStack item;
 	private Usage usage;
 	private Element element;
 	private Map<CoreAbility, List<BendingModifier>> mods;
 	
-	public BendingItem(ItemStack item, Usage usage, Element element, Map<CoreAbility, List<BendingModifier>> mods) {
+	public BendingItem(String name, ItemStack item, Usage usage, Element element, Map<CoreAbility, List<BendingModifier>> mods) {
+		this.name = name;
 		this.item = item;
 		this.usage = usage;
 		this.element = element;
 		this.mods = mods;
 	}
 	
+	public String getInternalName() {
+		return name;
+	}
+
 	public ItemStack getStack() {
 		return item.clone();
 	}
 	
 	public boolean isSimilar(ItemStack item) {
-		return item.isSimilar(this.item);
+		if (!item.hasItemMeta()) {
+			return false;
+		}
+		
+		return this.item.getType() == item.getType() && this.item.getItemMeta().getDisplayName().equals(item.getItemMeta().getDisplayName());
 	}
 	
 	public Usage getUsage() {
@@ -49,6 +62,18 @@ public class BendingItem implements Listener {
 	
 	public String getDisplayName() {
 		return item.getItemMeta().getDisplayName();
+	}
+	
+	public List<String> listMods() {
+		List<String> mods = new ArrayList<>();
+		mods.add("Stats:");
+		for (CoreAbility ability : this.mods.keySet()) {
+			for (BendingModifier mod : this.mods.get(ability)) {
+				mods.add("- " + (ability != null ? ability.getName() : "Base") + mod.attribute() + ChatColor.RESET + ": " + mod.value());
+			}
+		}
+		
+		return mods;
 	}
 	
 	public void applyMods(CoreAbility abil) {
@@ -69,7 +94,7 @@ public class BendingItem implements Listener {
 		
 		for (BendingModifier mod : specific) {
 			try {
-				abil.addAttributeModifier(mod.attribute(), mod.value(), mod.method(), AttributePriority.LOW);
+				abil.addAttributeModifier(mod.attribute(), mod.num(), mod.method(), AttributePriority.LOW);
 			} catch (Exception e) {
 				continue;
 			}
@@ -79,5 +104,9 @@ public class BendingItem implements Listener {
 	public void give(Player player) {
 		player.getInventory().addItem(item);
 		player.updateInventory();
+	}
+	
+	public DisplayItem toDisplay() {
+		return new DisplayItem(item, (p, g) -> give(p));
 	}
 }

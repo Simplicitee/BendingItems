@@ -4,14 +4,15 @@ import com.projectkorra.projectkorra.attribute.AttributeModifier;
 
 public final class BendingModifier {
 
-	private String attribute;
+	private String attribute, value;
 	private AttributeModifier mod;
-	private Number value;
+	private Number num;
 	
-	public BendingModifier(String attribute, AttributeModifier mod, Number value) {
+	public BendingModifier(String attribute, String value) {
 		this.attribute = attribute;
-		this.mod = mod;
 		this.value = value;
+		this.mod = value.charAt(0) == 'x' ? AttributeModifier.MULTIPLICATION : AttributeModifier.ADDITION;
+		this.num = Double.parseDouble(value.substring(1, value.length()));
 	}
 	
 	public String attribute() {
@@ -22,7 +23,11 @@ public final class BendingModifier {
 		return mod;
 	}
 	
-	public Number value() {
+	public Number num() {
+		return num;
+	}
+	
+	public String value() {
 		return value;
 	}
 }
