@@ -1,4 +1,4 @@
-package me.simplicitee.project.items;
+package me.simplicitee.project.items.command;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -10,6 +10,8 @@ import org.bukkit.entity.Player;
 
 import com.projectkorra.projectkorra.command.PKCommand;
 
+import me.simplicitee.project.items.BendingItem;
+import me.simplicitee.project.items.ItemManager;
 import me.simplicitee.project.items.BendingItem.Usage;
 import me.simplicitee.project.items.gui.ItemGui;
 import net.md_5.bungee.api.ChatColor;

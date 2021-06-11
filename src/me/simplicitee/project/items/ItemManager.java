@@ -6,8 +6,10 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.configuration.ConfigurationSection;
@@ -17,6 +19,9 @@ import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.Recipe;
+import org.bukkit.inventory.ShapedRecipe;
+import org.bukkit.inventory.ShapelessRecipe;
 import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
@@ -37,6 +42,7 @@ public final class ItemManager {
 	private static final Map<String, BendingItem> NAME_CACHE = new HashMap<>();
 	private static final Map<Integer, BendingItem> ID_CACHE = new HashMap<>();
 	private static final Map<Player, BendingItem> EQUIPPED = new HashMap<>();
+	private static final char[] CHARS = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'};
 	
 	private static final String DISPLAY_PATH = "Display";
 	private static final String LORE_PATH = "Lore";
@@ -48,6 +54,7 @@ public final class ItemManager {
 	private static final String ENCHANTS_PATH = "Enchants";
 	private static final String FLAGS_PATH = "Flags";
 	private static final String USES_PATH = "Uses";
+	private static final String RECIPE_PATH = "Recipe";
 	
 	public static void equip(Player player, BendingItem item) {
 		EQUIPPED.put(player, item);
@@ -282,10 +289,81 @@ public final class ItemManager {
 			}
 		}
 		
+		if (config.contains(RECIPE_PATH)) {
+			Recipe recipe = null;
+			try {
+				recipe = loadRecipe(name, item, config);
+			} catch (Exception e) {
+				e.printStackTrace();
+				recipe = null;
+			}
+			Bukkit.addRecipe(recipe);
+		}
+		
 		BendingItem bItem = new BendingItem(name, item, usage, element, mods);
 		NAME_CACHE.put(name, bItem);
 		ID_CACHE.put(id, bItem);
 		return bItem;
+	}
+	
+	private static Recipe loadRecipe(String name, ItemStack item, FileConfiguration config) {
+		Logger logger = JavaPlugin.getPlugin(ItemsPlugin.class).getLogger();
+		if (!config.contains(RECIPE_PATH + ".Ingredients")) {
+			logger.warning("Recipe for '" + name + "' requires a list of ingredients under the config path 'Recipe.Ingredients'");
+			return null;
+		} else if (!config.contains(RECIPE_PATH + ".Shaped")) {
+			logger.warning("Recipe for '" + name + "' requires a boolean (true / false) under the config path 'Recipe.Shaped'");
+			return null;
+		}
+		
+		boolean shaped = config.getBoolean(RECIPE_PATH + ".Shaped");
+		List<String> ingredients = config.getStringList(RECIPE_PATH + ".Ingredients");
+		
+		if (ingredients == null) {
+			logger.warning("Ingredients list for '" + name + "' recipe not found!");
+			return null;
+		} else if (ingredients.isEmpty()) {
+			logger.warning("Ingredients list for '" + name + "' recipe cannot be empty!");
+			return null;
+		} else if (ingredients.size() > 9) {
+			logger.warning("Ingredients list for '" + name + "' recipe cannot be longer than 9 items!");
+			return null;
+		}
+		
+		List<Material> mats = new ArrayList<>();
+		for (String mat : ingredients) {
+			try {
+				mats.add(Material.valueOf(mat.toUpperCase()));
+			} catch (Exception e) {
+				logger.warning("Unable to parse material from '" + mat + "' in '" + name + "' recipe!");
+				return null;
+			}
+		}
+		
+		if (shaped) {
+			if (!config.contains(RECIPE_PATH + ".Shape")) {
+				logger.warning("Recipe for '" + name + "' requires a shape under the config path 'Recipe.Shape'");
+				return null;
+			}
+			
+			ShapedRecipe recipe = new ShapedRecipe(new NamespacedKey(JavaPlugin.getPlugin(ItemsPlugin.class), name), item);
+			
+			recipe.shape(config.getStringList(RECIPE_PATH + ".Shape").toArray(new String[0]));
+			
+			for (int i = 0; i < ingredients.size(); ++i) {
+				recipe.setIngredient(CHARS[i], mats.get(i));
+			}
+			
+			return recipe;
+		} else {
+			ShapelessRecipe recipe = new ShapelessRecipe(new NamespacedKey(JavaPlugin.getPlugin(ItemsPlugin.class), name), item);
+			
+			for (Material ingredient : mats) {
+				recipe.addIngredient(ingredient);
+			}
+			
+			return recipe;
+		}
 	}
 	
 	private static List<BendingModifier> loadMods(ConfigurationSection section) {

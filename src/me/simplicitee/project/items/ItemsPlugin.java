@@ -4,6 +4,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.CraftItemEvent;
 import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.inventory.ItemStack;
@@ -11,6 +12,9 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import com.projectkorra.projectkorra.ability.CoreAbility;
 import com.projectkorra.projectkorra.event.AbilityStartEvent;
+
+import me.simplicitee.project.items.command.AttributesCommand;
+import me.simplicitee.project.items.command.ItemCommand;
 
 public class ItemsPlugin extends JavaPlugin implements Listener {
 
@@ -24,6 +28,7 @@ public class ItemsPlugin extends JavaPlugin implements Listener {
 		
 		// register command
 		new ItemCommand();
+		new AttributesCommand();
 	}
 	
 	@Override
@@ -55,5 +60,14 @@ public class ItemsPlugin extends JavaPlugin implements Listener {
 	@EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
 	public void onOffhand(PlayerSwapHandItemsEvent event) {
 		event.setCancelled(ItemManager.equipped(event.getPlayer()));
+	}
+	
+	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+	public void onCraft(CraftItemEvent event) {
+		BendingItem item = ItemManager.get(event.getInventory().getResult());
+		
+		if (item != null) {
+			event.getInventory().setResult(item.newStack());
+		}
 	}
 }
