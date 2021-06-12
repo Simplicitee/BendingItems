@@ -37,12 +37,12 @@ public final class ItemManager {
 
 	private ItemManager() {}
 	
+	private static final char[] CHARS = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'};
 	private static final NamespacedKey ID_KEY = new NamespacedKey(JavaPlugin.getPlugin(ItemsPlugin.class), "itemid");
 	private static final NamespacedKey USES_KEY = new NamespacedKey(JavaPlugin.getPlugin(ItemsPlugin.class), "itemuses");
 	private static final Map<String, BendingItem> NAME_CACHE = new HashMap<>();
 	private static final Map<Integer, BendingItem> ID_CACHE = new HashMap<>();
 	private static final Map<Player, BendingItem> EQUIPPED = new HashMap<>();
-	private static final char[] CHARS = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'};
 	
 	private static final String DISPLAY_PATH = "Display";
 	private static final String LORE_PATH = "Lore";
@@ -491,5 +491,11 @@ public final class ItemManager {
 		for (File file : folder.listFiles()) {
 			register(file);
 		}
+	}
+	
+	static void disable() {
+		NAME_CACHE.clear();
+		ID_CACHE.clear();
+		EQUIPPED.clear();
 	}
 }

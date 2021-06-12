@@ -32,7 +32,9 @@ public class ItemsPlugin extends JavaPlugin implements Listener {
 	}
 	
 	@Override
-	public void onDisable() {}
+	public void onDisable() {
+		ItemManager.disable();
+	}
 	
 	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
 	public void onAbilityStart(AbilityStartEvent event) {
