@@ -1,33 +1,44 @@
 package me.simplicitee.project.items;
 
+import com.projectkorra.projectkorra.ability.CoreAbility;
 import com.projectkorra.projectkorra.attribute.AttributeModifier;
+import com.projectkorra.projectkorra.attribute.AttributePriority;
 
 public final class BendingModifier {
 
-	private String attribute, value;
+	private String attribute;
 	private AttributeModifier mod;
-	private Number num;
+	private Number scalar;
 	
-	public BendingModifier(String attribute, String value) {
+	public BendingModifier(String attribute, AttributeModifier mod, Number scalar) {
 		this.attribute = attribute;
-		this.value = value;
-		this.mod = value.charAt(0) == 'x' ? AttributeModifier.MULTIPLICATION : AttributeModifier.ADDITION;
-		this.num = Double.parseDouble(value.substring(1, value.length()));
+		this.mod = mod;
+		this.scalar = scalar;
 	}
 	
 	public String attribute() {
 		return attribute;
 	}
 	
-	public AttributeModifier method() {
-		return mod;
+	public void apply(CoreAbility ability) {
+	    try {
+	        ability.addAttributeModifier(attribute, scalar, mod, AttributePriority.LOW);
+        } catch (Exception e) {}
 	}
 	
-	public Number num() {
-		return num;
+	@Override
+	public String toString() {
+	    return attribute + ": " + (mod == AttributeModifier.MULTIPLICATION ? "x" : "+") + scalar.toString();
 	}
 	
-	public String value() {
-		return value;
+	public static BendingModifier of(String attribute, String value) {
+	    if (!value.startsWith("x") || !value.startsWith("+")) {
+	        throw new IllegalArgumentException("Mods must start with 'x' or '+'");
+	    }
+	    
+	    AttributeModifier mod = value.startsWith("x") ? AttributeModifier.MULTIPLICATION : AttributeModifier.ADDITION;
+	    Number scalar = Double.parseDouble(value.substring(1));
+	    
+	    return new BendingModifier(attribute, mod, scalar);
 	}
 }

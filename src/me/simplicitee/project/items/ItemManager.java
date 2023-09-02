@@ -55,6 +55,7 @@ public final class ItemManager {
 	private static final String FLAGS_PATH = "Flags";
 	private static final String USES_PATH = "Uses";
 	private static final String RECIPE_PATH = "Recipe";
+	private static final String MODEL_PATH = "Model";
 	
 	public static void equip(Player player, BendingItem item) {
 		EQUIPPED.put(player, item);
@@ -265,6 +266,10 @@ public final class ItemManager {
 			}
 		}
 		
+		if (config.contains(MODEL_PATH)) {
+		    meta.setCustomModelData(config.getInt(MODEL_PATH));
+		}
+		
 		int id = name.hashCode();
 		meta.setLore(lore);
 		meta.getPersistentDataContainer().set(ID_KEY, PersistentDataType.INTEGER, id);
@@ -370,7 +375,19 @@ public final class ItemManager {
 		List<BendingModifier> mods = new ArrayList<>();
 		
 		for (String key : section.getKeys(false)) {
-			mods.add(new BendingModifier(key, section.getString(key)));
+		    BendingModifier mod = null;
+		    
+		    try {
+		        mod = BendingModifier.of(key, section.getString(key));
+		    } catch (Exception e) {
+		        e.printStackTrace();
+		    }
+		    
+		    if (mod == null) {
+		        continue;
+		    }
+		    
+			mods.add(mod);
 		}
 		
 		return mods;

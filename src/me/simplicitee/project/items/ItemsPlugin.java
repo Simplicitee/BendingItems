@@ -26,7 +26,7 @@ public class ItemsPlugin extends JavaPlugin implements Listener {
 		// register listener
 		this.getServer().getPluginManager().registerEvents(this, this);
 		
-		// register command
+		// register commands
 		new ItemCommand();
 		new AttributesCommand();
 	}

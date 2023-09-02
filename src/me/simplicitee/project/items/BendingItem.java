@@ -13,10 +13,8 @@ import org.bukkit.inventory.meta.ItemMeta;
 
 import com.projectkorra.projectkorra.Element;
 import com.projectkorra.projectkorra.ability.CoreAbility;
-import com.projectkorra.projectkorra.attribute.AttributePriority;
 
 import me.simplicitee.project.items.gui.DisplayItem;
-import net.md_5.bungee.api.ChatColor;
 
 public class BendingItem implements Listener {
 
@@ -77,7 +75,7 @@ public class BendingItem implements Listener {
 		mods.add("Stats:");
 		for (CoreAbility ability : this.mods.keySet()) {
 			for (BendingModifier mod : this.mods.get(ability)) {
-				mods.add("- " + (ability != null ? ability.getName() : "Base") + mod.attribute() + ChatColor.RESET + ": " + mod.value());
+				mods.add("- " + (ability != null ? ability.getName() : "Base") + mod.toString());
 			}
 		}
 		
@@ -101,11 +99,7 @@ public class BendingItem implements Listener {
 		}
 		
 		for (BendingModifier mod : specific) {
-			try {
-				abil.addAttributeModifier(mod.attribute(), mod.num(), mod.method(), AttributePriority.LOW);
-			} catch (Exception e) {
-				continue;
-			}
+			mod.apply(abil);
 		}
 		
 		ItemManager.use(abil.getPlayer(), stack);
