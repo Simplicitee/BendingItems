@@ -32,7 +32,7 @@ public final class BendingModifier {
 	}
 	
 	public static BendingModifier of(String attribute, String value) {
-	    if (!value.startsWith("x") || !value.startsWith("+")) {
+	    if (!value.startsWith("x") && !value.startsWith("+")) {
 	        throw new IllegalArgumentException("Mods must start with 'x' or '+'");
 	    }
 	    
