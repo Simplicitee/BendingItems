@@ -275,21 +275,13 @@ public final class ItemManager {
 		meta.getPersistentDataContainer().set(ID_KEY, PersistentDataType.INTEGER, id);
 		item.setItemMeta(meta);
 		
-		Map<CoreAbility, List<BendingModifier>> mods = null;
+		Map<String, List<BendingModifier>> mods = null;
 		if (config.contains("Mods")) {
 			mods = new HashMap<>();
 			
-			if (config.contains("Mods.Base")) {
-				mods.put(null, loadMods(config.getConfigurationSection("Mods.Base")));
-			}
-			
 			for (String key : config.getConfigurationSection("Mods").getKeys(false)) {
-				CoreAbility ability = CoreAbility.getAbility(key);
-				
-				if (ability == null) {
-					continue;
-				}
-				
+			    String ability = key.equalsIgnoreCase("Base") ? null : key.toLowerCase(); 
+			    
 				mods.put(ability, loadMods(config.getConfigurationSection("Mods." + key)));
 			}
 		}

@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.ThreadLocalRandom;
 
 import org.bukkit.entity.Player;
@@ -26,9 +27,9 @@ public class BendingItem implements Listener {
 	private ItemStack item;
 	private Usage usage;
 	private Element element;
-	private Map<CoreAbility, List<BendingModifier>> mods;
+	private Map<String, List<BendingModifier>> mods;
 	
-	public BendingItem(String name, ItemStack item, Usage usage, Element element, Map<CoreAbility, List<BendingModifier>> mods) {
+	public BendingItem(String name, ItemStack item, Usage usage, Element element, Map<String, List<BendingModifier>> mods) {
 		this.name = name;
 		this.item = item;
 		this.usage = usage;
@@ -73,9 +74,12 @@ public class BendingItem implements Listener {
 	public List<String> listMods() {
 		List<String> mods = new ArrayList<>();
 		mods.add("Stats:");
-		for (CoreAbility ability : this.mods.keySet()) {
-			for (BendingModifier mod : this.mods.get(ability)) {
-				mods.add("- " + (ability != null ? ability.getName() : "Base") + mod.toString());
+		
+		for (Entry<String, List<BendingModifier>> entry : this.mods.entrySet()) {
+		    String ability = entry.getKey();
+		    
+			for (BendingModifier mod : entry.getValue()) {
+				mods.add("- " + (ability != null ? ability : "Base") + "." + mod.toString());
 			}
 		}
 		
@@ -91,7 +95,7 @@ public class BendingItem implements Listener {
 		
 		List<BendingModifier> specific = new ArrayList<>();
 		
-		specific.addAll(mods.getOrDefault(abil, Collections.emptyList()));
+		specific.addAll(mods.getOrDefault(abil.getName().toLowerCase(), Collections.emptyList()));
 		specific.addAll(mods.getOrDefault(null, Collections.emptyList()));
 		
 		if (specific.isEmpty()) {
