@@ -21,7 +21,7 @@ public class ItemCommand extends PKCommand {
 	private ItemGui gui;
 	
 	public ItemCommand() {
-		super("item", "/bending item <give <item> [player] / list / gui / stats <item>>", "Do many things with bending items!", new String[] {"item"});
+		super("item", "/bending item <give <item> [player] / list / gui / stats <item> / equip>", "Do many things with bending items!", new String[] {"item"});
 		gui = new ItemGui(ItemManager.listItems());
 	}
 

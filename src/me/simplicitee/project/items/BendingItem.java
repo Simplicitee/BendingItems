@@ -8,7 +8,6 @@ import java.util.Map.Entry;
 import java.util.concurrent.ThreadLocalRandom;
 
 import org.bukkit.entity.Player;
-import org.bukkit.event.Listener;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
@@ -17,7 +16,7 @@ import com.projectkorra.projectkorra.ability.CoreAbility;
 
 import me.simplicitee.project.items.gui.DisplayItem;
 
-public class BendingItem implements Listener {
+public class BendingItem {
 
 	public enum Usage {
 		WEARING, HOLDING, POSSESS;
@@ -79,18 +78,18 @@ public class BendingItem implements Listener {
 		    String ability = entry.getKey();
 		    
 			for (BendingModifier mod : entry.getValue()) {
-				mods.add("- " + (ability != null ? ability : "Base") + "." + mod.toString());
+				mods.add("- " + (ability != null ? ability : "base") + "." + mod.toString());
 			}
 		}
 		
 		return mods;
 	}
 	
-	public void applyMods(CoreAbility abil, ItemStack stack) {
+	public boolean applyMods(CoreAbility abil) {
 		if (mods == null) {
-			return;
+			return false;
 		} else if (element != Element.AVATAR && element != abil.getElement()) {
-			return;
+			return false;
 		}
 		
 		List<BendingModifier> specific = new ArrayList<>();
@@ -99,14 +98,14 @@ public class BendingItem implements Listener {
 		specific.addAll(mods.getOrDefault(null, Collections.emptyList()));
 		
 		if (specific.isEmpty()) {
-			return;
+			return false;
 		}
 		
 		for (BendingModifier mod : specific) {
 			mod.apply(abil);
 		}
 		
-		ItemManager.use(abil.getPlayer(), stack);
+		return true;
 	}
 	
 	public void give(Player player) {

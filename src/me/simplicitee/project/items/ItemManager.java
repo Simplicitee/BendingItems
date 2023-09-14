@@ -57,56 +57,74 @@ public final class ItemManager {
 	private static final String RECIPE_PATH = "Recipe";
 	private static final String MODEL_PATH = "Model";
 	
-	public static void equip(Player player, BendingItem item) {
-		EQUIPPED.put(player, item);
-	}
-	
-	public static void unequip(Player player) {
-		EQUIPPED.remove(player);
-	}
-	
-	public static boolean equipped(Player player) {
-		return EQUIPPED.containsKey(player);
-	}
-	
-	public static boolean matches(Player player, ItemStack item) {
-		return EQUIPPED.containsKey(player) && EQUIPPED.get(player).isSimilar(item);
-	}
-	
 	public static void modify(CoreAbility ability) {
 		Player player = ability.getPlayer();
 		
-		BendingItem main = get(player.getInventory().getItemInMainHand()), off = get(player.getInventory().getItemInOffHand());
+		ItemStack mainItem = player.getInventory().getItemInMainHand(), offItem = player.getInventory().getItemInOffHand();
+		BendingItem main = get(mainItem), off = get(offItem);
 		
 		if (main != null && main.getUsage() == Usage.HOLDING) {
-			main.applyMods(ability, player.getInventory().getItemInMainHand());
+			if (main.applyMods(ability)) {
+			    use(player, player.getInventory().getHeldItemSlot(), main);
+			}
 		}
 		
 		if (off != null && off.getUsage() == Usage.HOLDING) {
-			off.applyMods(ability, player.getInventory().getItemInOffHand());
-		}
-		
-		for (ItemStack is : player.getInventory().getArmorContents()) {
-			BendingItem item = get(is);
-			if (item != null && (item.getUsage() == Usage.WEARING || item.getUsage() == Usage.POSSESS)) {
-				item.applyMods(ability, is);
+			if (off.applyMods(ability)) {
+			    use(player, 40, off);
 			}
 		}
 		
-		for (ItemStack is : player.getInventory().getStorageContents()) {
-			BendingItem item = get(is);
+		ItemStack[] wearing = player.getInventory().getArmorContents();
+		for (int slot = 0; slot < wearing.length; ++slot) {
+			BendingItem item = get(wearing[slot]);
+			if (item != null && item.getUsage() == Usage.WEARING) {
+				if (item.applyMods(ability)) {
+				    use(player, 36 + slot, item);
+				}
+			}
+		}
+		
+		ItemStack[] storage = player.getInventory().getContents();
+		for (int slot = 0; slot < storage.length; ++slot) {
+			BendingItem item = get(storage[slot]);
 			if (item != null && item.getUsage() == Usage.POSSESS) {
-				item.applyMods(ability, is);
+				if (item.applyMods(ability)) {
+				    use(player, slot, item);
+				}
 			}
 		}
 	}
+    
+    public static void use(Player player, int slot, BendingItem bItem) {
+        ItemStack item = player.getInventory().getItem(slot);
+        if (!item.hasItemMeta() || !item.getItemMeta().getPersistentDataContainer().has(USES_KEY, PersistentDataType.INTEGER)) {
+            return;
+        }
+        
+        ItemMeta meta = item.getItemMeta();
+        int uses = meta.getPersistentDataContainer().get(USES_KEY, PersistentDataType.INTEGER);
+        if (uses == 1) {
+            player.getInventory().setItem(slot, null);
+            removeID(item);
+            EQUIPPED.computeIfPresent(player, (k, v) -> {
+                if (v == bItem) return null;
+                return v;
+            });
+        } else {
+            meta.getPersistentDataContainer().set(USES_KEY, PersistentDataType.INTEGER, uses - 1);
+            item.setItemMeta(meta);
+        }
+        
+        player.updateInventory();
+    }
 	
 	public static List<BendingItem> listActive(Player player) {
 		List<BendingItem> actives = new ArrayList<>();
 		
 		for (ItemStack is : player.getInventory().getArmorContents()) {
 			BendingItem item = get(is);
-			if (item != null && (item.getUsage() == Usage.WEARING || item.getUsage() == Usage.POSSESS)) {
+			if (item != null && item.getUsage() == Usage.WEARING) {
 				actives.add(item);
 			}
 		}
@@ -151,26 +169,25 @@ public final class ItemManager {
 		return bItem;
 	}
 	
-	public static void use(Player player, ItemStack item) {
-		if (!item.hasItemMeta() || !item.getItemMeta().getPersistentDataContainer().has(USES_KEY, PersistentDataType.INTEGER)) {
-			return;
-		}
-		
-		ItemMeta meta = item.getItemMeta();
-		int uses = meta.getPersistentDataContainer().get(USES_KEY, PersistentDataType.INTEGER);
-		if (uses == 1) {
-			player.getInventory().remove(item);
-		} else {
-			meta.getPersistentDataContainer().set(USES_KEY, PersistentDataType.INTEGER, uses - 1);
-			item.setItemMeta(meta);
-		}
-		
-		player.updateInventory();
-	}
-	
 	public static List<BendingItem> listItems() {
 		return new ArrayList<>(ID_CACHE.values());
 	}
+	
+    public static void equip(Player player, BendingItem item) {
+        EQUIPPED.put(player, item);
+    }
+    
+    public static void unequip(Player player) {
+        EQUIPPED.remove(player);
+    }
+    
+    public static boolean equipped(Player player) {
+        return EQUIPPED.containsKey(player);
+    }
+    
+    public static boolean matches(Player player, ItemStack item) {
+        return EQUIPPED.containsKey(player) && EQUIPPED.get(player).isSimilar(item);
+    }
 	
 	public static BendingItem register(File file) throws IllegalArgumentException {
 		if (!file.getName().endsWith(".yml")) {
@@ -372,7 +389,7 @@ public final class ItemManager {
 		    try {
 		        mod = BendingModifier.of(key, section.getString(key));
 		    } catch (Exception e) {
-		        e.printStackTrace();
+		        Bukkit.getLogger().warning(section.getName() + " mod " + key + " has " + e.getMessage() + " operations.");
 		    }
 		    
 		    if (mod == null) {
