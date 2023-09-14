@@ -471,10 +471,10 @@ public final class ItemManager {
 		config3.addDefault("Mods.Base.Damage", "x1.5");
 		config3.addDefault("Mods.Base.Range", "+10");
 		config3.addDefault("Mods.Base.Speed", "x1.2");
-		config3.addDefault("Mods.Base.Duration", "x1.2");
+		config3.addDefault("Mods.Base.Duration", "x6,/5");
 		config3.addDefault("Mods.Base.Knockback", "x1.3");
 		config3.addDefault("Mods.Base.Knockup", "x1.5");
-		config3.addDefault("Mods.Base.Cooldown", "x0.7");
+		config3.addDefault("Mods.Base.Cooldown", "x7,/10");
 		config3.addDefault("Mods.Base.Height", "+1");
 		config3.addDefault("Mods.EarthArmor.GoldHearts", "+2");
 		config3.addDefault("Mods.EarthSmash.FlightDuration", "+3000");
@@ -490,9 +490,9 @@ public final class ItemManager {
 		config4.addDefault(FLAGS_PATH, Arrays.asList(ItemFlag.HIDE_ATTRIBUTES.toString(), ItemFlag.HIDE_ENCHANTS.toString()));
 		config4.addDefault("Mods.Base.Damage", "x2");
 		config4.addDefault("Mods.Base.Speed", "x1.4");
-		config4.addDefault("Mods.Base.Duration", "x1.5");
-		config4.addDefault("Mods.Base.Cooldown", "x0.5");
-		config4.addDefault("Mods.Base.ChargeTime", "x0.5");
+		config4.addDefault("Mods.Base.Duration", "x3,/2");
+		config4.addDefault("Mods.Base.Cooldown", "/2");
+		config4.addDefault("Mods.Base.ChargeTime", "/2");
 		config4.addDefault(ENCHANTS_PATH, Arrays.asList(Enchantment.SWEEPING_EDGE.getKey().getKey() + ":4"));
 		
 		try {
