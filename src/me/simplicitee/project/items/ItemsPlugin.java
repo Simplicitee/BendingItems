@@ -61,7 +61,9 @@ public class ItemsPlugin extends JavaPlugin implements Listener {
 	
 	@EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
 	public void onOffhand(PlayerSwapHandItemsEvent event) {
-		event.setCancelled(ItemManager.equipped(event.getPlayer()));
+	    if (ItemManager.equipped(event.getPlayer())) {
+	        event.setCancelled(true);
+	    }
 	}
 	
 	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)

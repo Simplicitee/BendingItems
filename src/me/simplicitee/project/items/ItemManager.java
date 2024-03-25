@@ -6,8 +6,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Logger;
-import java.util.stream.Collectors;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -19,10 +17,6 @@ import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.Recipe;
-import org.bukkit.inventory.ShapedRecipe;
-import org.bukkit.inventory.ShapelessRecipe;
-import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -31,31 +25,24 @@ import com.projectkorra.projectkorra.Element;
 import com.projectkorra.projectkorra.ability.CoreAbility;
 
 import me.simplicitee.project.items.BendingItem.Usage;
+import me.simplicitee.project.items.item.ItemData;
 import net.md_5.bungee.api.ChatColor;
 
 public final class ItemManager {
 
 	private ItemManager() {}
 	
-	private static final char[] CHARS = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'};
-	private static final NamespacedKey ID_KEY = new NamespacedKey(JavaPlugin.getPlugin(ItemsPlugin.class), "itemid");
-	private static final NamespacedKey USES_KEY = new NamespacedKey(JavaPlugin.getPlugin(ItemsPlugin.class), "itemuses");
+	public static final NamespacedKey ID_KEY = new NamespacedKey(JavaPlugin.getPlugin(ItemsPlugin.class), "itemid");
+	public static final NamespacedKey USES_KEY = new NamespacedKey(JavaPlugin.getPlugin(ItemsPlugin.class), "itemuses");
+	
 	private static final Map<String, BendingItem> NAME_CACHE = new HashMap<>();
 	private static final Map<Integer, BendingItem> ID_CACHE = new HashMap<>();
 	private static final Map<Player, BendingItem> EQUIPPED = new HashMap<>();
 	
-	private static final String DISPLAY_PATH = "Display";
-	private static final String LORE_PATH = "Lore";
-	private static final String MATERIAL_PATH = "Material";
-	private static final String DURABILITY_PATH = "Durability";
-	private static final String USAGE_PATH = "Usage";
-	private static final String ELEMENT_PATH = "Element";
-	private static final String UNBREAKABLE_PATH = "Unbreakable";
-	private static final String ENCHANTS_PATH = "Enchants";
-	private static final String FLAGS_PATH = "Flags";
-	private static final String USES_PATH = "Uses";
-	private static final String RECIPE_PATH = "Recipe";
-	private static final String MODEL_PATH = "Model";
+    private static final String MATERIAL_PATH = "Material";
+    public static final String USAGE_PATH = "Usage";
+    public static final String ELEMENT_PATH = "Element";
+    public static final String MODS_PATH = "Mods";
 	
 	public static void modify(CoreAbility ability) {
 		Player player = ability.getPlayer();
@@ -234,150 +221,29 @@ public final class ItemManager {
 		ItemMeta meta = item.getItemMeta();
 		List<String> lore = new ArrayList<>();
 		lore.add(ChatColor.DARK_GRAY + (ChatColor.ITALIC + "Usage: ") + usage.toString());
+		meta.setLore(lore);
 		
-		if (config.contains(DISPLAY_PATH)) {
-			meta.setDisplayName(ChatColor.translateAlternateColorCodes('&', config.getString(DISPLAY_PATH)));
-		} else {
-			meta.setDisplayName(name);
-		}
-		
-		if (config.contains(LORE_PATH)) {
-			lore.addAll(config.getStringList(LORE_PATH).stream().map((s) -> ChatColor.translateAlternateColorCodes('&', s)).collect(Collectors.toList()));
-		}
-		
-		if (config.contains(UNBREAKABLE_PATH)) {
-			meta.setUnbreakable(config.getBoolean(UNBREAKABLE_PATH));
-		}
-		
-		if (config.contains(DURABILITY_PATH) && meta instanceof Damageable) {
-			((Damageable) meta).setDamage(-(config.getInt(DURABILITY_PATH) - mat.getMaxDurability()));
-		}
-		
-		if (config.contains(USES_PATH)) {
-			meta.getPersistentDataContainer().set(USES_KEY, PersistentDataType.INTEGER, config.getInt(USES_PATH));
-		}
-		
-		if (config.contains(ENCHANTS_PATH)) {
-			for (String enchant : config.getStringList(ENCHANTS_PATH)) {
-				String[] split = enchant.split(":");
-				
-				if (split.length != 2) {
-					continue;
-				}
-				
-				try {
-					meta.addEnchant(Enchantment.getByKey(NamespacedKey.minecraft(split[0])), Integer.parseInt(split[1]), true);
-				} catch (NumberFormatException e) {
-					JavaPlugin.getPlugin(ItemsPlugin.class).getLogger().warning("Unable to parse integer from '" + enchant + "' in enchants on item '" + name + "', ignoring.");
-				} catch (Exception e) {
-					JavaPlugin.getPlugin(ItemsPlugin.class).getLogger().warning("Unable to parse enchant from '" + enchant + "' in enchants on item '" + name + "', ignoring.");
-				}
-			}
-		}
-		
-		if (config.contains(FLAGS_PATH)) {
-			for (String flag : config.getStringList(FLAGS_PATH)) {
-				try {
-					meta.addItemFlags(ItemFlag.valueOf(flag.toUpperCase()));
-				} catch (Exception e) {}
-			}
-		}
-		
-		if (config.contains(MODEL_PATH)) {
-		    meta.setCustomModelData(config.getInt(MODEL_PATH));
-		}
+		ItemData.parseAll(name, item, meta, config);
 		
 		int id = name.hashCode();
-		meta.setLore(lore);
 		meta.getPersistentDataContainer().set(ID_KEY, PersistentDataType.INTEGER, id);
 		item.setItemMeta(meta);
 		
 		Map<String, List<BendingModifier>> mods = null;
-		if (config.contains("Mods")) {
+		if (config.contains(MODS_PATH)) {
 			mods = new HashMap<>();
 			
-			for (String key : config.getConfigurationSection("Mods").getKeys(false)) {
+			for (String key : config.getConfigurationSection(MODS_PATH).getKeys(false)) {
 			    String ability = key.equalsIgnoreCase("Base") ? null : key.toLowerCase(); 
 			    
-				mods.put(ability, loadMods(config.getConfigurationSection("Mods." + key)));
+				mods.put(ability, loadMods(config.getConfigurationSection(MODS_PATH + "." + key)));
 			}
-		}
-		
-		if (config.contains(RECIPE_PATH)) {
-			Recipe recipe = null;
-			try {
-				recipe = loadRecipe(name, item, config);
-			} catch (Exception e) {
-				e.printStackTrace();
-				recipe = null;
-			}
-			Bukkit.addRecipe(recipe);
 		}
 		
 		BendingItem bItem = new BendingItem(name, item, usage, element, mods);
 		NAME_CACHE.put(name, bItem);
 		ID_CACHE.put(id, bItem);
 		return bItem;
-	}
-	
-	private static Recipe loadRecipe(String name, ItemStack item, FileConfiguration config) {
-		Logger logger = JavaPlugin.getPlugin(ItemsPlugin.class).getLogger();
-		if (!config.contains(RECIPE_PATH + ".Ingredients")) {
-			logger.warning("Recipe for '" + name + "' requires a list of ingredients under the config path 'Recipe.Ingredients'");
-			return null;
-		} else if (!config.contains(RECIPE_PATH + ".Shaped")) {
-			logger.warning("Recipe for '" + name + "' requires a boolean (true / false) under the config path 'Recipe.Shaped'");
-			return null;
-		}
-		
-		boolean shaped = config.getBoolean(RECIPE_PATH + ".Shaped");
-		List<String> ingredients = config.getStringList(RECIPE_PATH + ".Ingredients");
-		
-		if (ingredients == null) {
-			logger.warning("Ingredients list for '" + name + "' recipe not found!");
-			return null;
-		} else if (ingredients.isEmpty()) {
-			logger.warning("Ingredients list for '" + name + "' recipe cannot be empty!");
-			return null;
-		} else if (ingredients.size() > 9) {
-			logger.warning("Ingredients list for '" + name + "' recipe cannot be longer than 9 items!");
-			return null;
-		}
-		
-		List<Material> mats = new ArrayList<>();
-		for (String mat : ingredients) {
-			try {
-				mats.add(Material.valueOf(mat.toUpperCase()));
-			} catch (Exception e) {
-				logger.warning("Unable to parse material from '" + mat + "' in '" + name + "' recipe!");
-				return null;
-			}
-		}
-		
-		if (shaped) {
-			if (!config.contains(RECIPE_PATH + ".Shape")) {
-				logger.warning("Recipe for '" + name + "' requires a shape under the config path 'Recipe.Shape'");
-				return null;
-			}
-			
-			ShapedRecipe recipe = new ShapedRecipe(new NamespacedKey(JavaPlugin.getPlugin(ItemsPlugin.class), name), item);
-			
-			recipe.shape(config.getStringList(RECIPE_PATH + ".Shape").toArray(new String[0]));
-			
-			for (int i = 0; i < ingredients.size(); ++i) {
-				recipe.setIngredient(CHARS[i], mats.get(i));
-			}
-			
-			return recipe;
-		} else {
-			ShapelessRecipe recipe = new ShapelessRecipe(new NamespacedKey(JavaPlugin.getPlugin(ItemsPlugin.class), name), item);
-			
-			for (Material ingredient : mats) {
-				recipe.addIngredient(ingredient);
-			}
-			
-			return recipe;
-		}
 	}
 	
 	private static List<BendingModifier> loadMods(ConfigurationSection section) {
@@ -436,64 +302,65 @@ public final class ItemManager {
 			example1.createNewFile();
 			example2.createNewFile();
 			example3.createNewFile();
+			example4.createNewFile();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		
 		FileConfiguration config1 = YamlConfiguration.loadConfiguration(example1);
 		config1.options().copyDefaults(true);
-		config1.addDefault(DISPLAY_PATH, "&bDivine Raavaxe");
+		config1.addDefault(ItemData.DISPLAY_NAME.path(), "&bDivine Raavaxe");
 		config1.addDefault(MATERIAL_PATH, Material.DIAMOND_AXE.toString());
 		config1.addDefault(ELEMENT_PATH, Element.AVATAR.getName());
 		config1.addDefault(USAGE_PATH, Usage.HOLDING.toString());
-		config1.addDefault(DURABILITY_PATH, 2000);
-		config1.addDefault(LORE_PATH, Arrays.asList("&dAn axe graced by Raava and", "&dimbued with spiritual energy that", "&dincreases bending damage!"));
-		config1.addDefault(FLAGS_PATH, Arrays.asList(ItemFlag.HIDE_ATTRIBUTES.toString()));
-		config1.addDefault("Mods.Base.Damage", "x2");
+		config1.addDefault(ItemData.DURABILITY.path(), 2000);
+		config1.addDefault(ItemData.LORE.path(), Arrays.asList("&dAn axe graced by Raava and", "&dimbued with spiritual energy that", "&dincreases bending damage!"));
+		config1.addDefault(ItemData.FLAGS.path(), Arrays.asList(ItemFlag.HIDE_ATTRIBUTES.toString()));
+		config1.addDefault(MODS_PATH + ".Base.Damage", "x2");
 		
 		FileConfiguration config2 = YamlConfiguration.loadConfiguration(example2);
 		config2.options().copyDefaults(true);
-		config2.addDefault(DISPLAY_PATH, "&cHelm of Vaatu");
+		config2.addDefault(ItemData.DISPLAY_NAME.path(), "&cHelm of Vaatu");
 		config2.addDefault(MATERIAL_PATH, Material.NETHERITE_HELMET.toString());
 		config2.addDefault(ELEMENT_PATH, Element.AVATAR.getName());
 		config2.addDefault(USAGE_PATH, Usage.WEARING.toString());
-		config2.addDefault(DURABILITY_PATH, 2000);
-		config2.addDefault(LORE_PATH, Arrays.asList("&8A helmet of darkness", "&8imbued with Vaatu's energy that", "&8increases bending range!"));
-		config2.addDefault("Mods.Base.Range", "x2");
+		config2.addDefault(ItemData.DURABILITY.path(), 2000);
+		config2.addDefault(ItemData.LORE.path(), Arrays.asList("&8A helmet of darkness", "&8imbued with Vaatu's energy that", "&8increases bending range!"));
+		config2.addDefault(MODS_PATH + ".Base.Range", "x2");
 		
 		FileConfiguration config3 = YamlConfiguration.loadConfiguration(example3);
 		config3.options().copyDefaults(true);
-		config3.addDefault(DISPLAY_PATH, "&aMeteorite Fragment");
+		config3.addDefault(ItemData.DISPLAY_NAME.path(), "&aMeteorite Fragment");
 		config3.addDefault(MATERIAL_PATH, Material.IRON_NUGGET.toString());
 		config3.addDefault(ELEMENT_PATH, Element.EARTH.getName());
 		config3.addDefault(USAGE_PATH, Usage.POSSESS.toString());
-		config3.addDefault(LORE_PATH, Arrays.asList("&2A mysterious object, it", "&2radiates energy that empowers", "&2earthbending abilities."));
-		config3.addDefault("Mods.Base.Damage", "x1.5");
-		config3.addDefault("Mods.Base.Range", "+10");
-		config3.addDefault("Mods.Base.Speed", "x1.2");
-		config3.addDefault("Mods.Base.Duration", "x6,/5");
-		config3.addDefault("Mods.Base.Knockback", "x1.3");
-		config3.addDefault("Mods.Base.Knockup", "x1.5");
-		config3.addDefault("Mods.Base.Cooldown", "x7,/10");
-		config3.addDefault("Mods.Base.Height", "+1");
-		config3.addDefault("Mods.EarthArmor.GoldHearts", "+2");
-		config3.addDefault("Mods.EarthSmash.FlightDuration", "+3000");
+		config3.addDefault(ItemData.LORE.path(), Arrays.asList("&2A mysterious object, it", "&2radiates energy that empowers", "&2earthbending abilities."));
+		config3.addDefault(MODS_PATH + ".Base.Damage", "x1.5");
+		config3.addDefault(MODS_PATH + ".Base.Range", "+10");
+		config3.addDefault(MODS_PATH + ".Base.Speed", "x1.2");
+		config3.addDefault(MODS_PATH + ".Base.Duration", "x6,/5");
+		config3.addDefault(MODS_PATH + ".Base.Knockback", "x1.3");
+		config3.addDefault(MODS_PATH + ".Base.Knockup", "x1.5");
+		config3.addDefault(MODS_PATH + ".Base.Cooldown", "x7,/10");
+		config3.addDefault(MODS_PATH + ".Base.Height", "+1");
+		config3.addDefault(MODS_PATH + ".EarthArmor.GoldHearts", "+2");
+		config3.addDefault(MODS_PATH + ".EarthSmash.FlightDuration", "+3000");
 		
 		FileConfiguration config4 = YamlConfiguration.loadConfiguration(example4);
 		config4.options().copyDefaults(true);
-		config4.addDefault(DISPLAY_PATH, "&6Sword of Time");
+		config4.addDefault(ItemData.DISPLAY_NAME.path(), "&6Sword of Time");
 		config4.addDefault(MATERIAL_PATH, Material.WOODEN_SWORD.toString());
 		config4.addDefault(ELEMENT_PATH, Element.AVATAR.getName());
 		config4.addDefault(USAGE_PATH, Usage.HOLDING.toString());
-		config4.addDefault(UNBREAKABLE_PATH, true);
-		config4.addDefault(LORE_PATH, Arrays.asList("&7A sword crafted out of a", "&7branch from the Tree of Time,", "&7it absorbed enough spiritual", "&7energy to be indestructible"));
-		config4.addDefault(FLAGS_PATH, Arrays.asList(ItemFlag.HIDE_ATTRIBUTES.toString(), ItemFlag.HIDE_ENCHANTS.toString()));
-		config4.addDefault("Mods.Base.Damage", "x2");
-		config4.addDefault("Mods.Base.Speed", "x1.4");
-		config4.addDefault("Mods.Base.Duration", "x3,/2");
-		config4.addDefault("Mods.Base.Cooldown", "/2");
-		config4.addDefault("Mods.Base.ChargeTime", "/2");
-		config4.addDefault(ENCHANTS_PATH, Arrays.asList(Enchantment.SWEEPING_EDGE.getKey().getKey() + ":4"));
+		config4.addDefault(ItemData.UNBREAKABLE.path(), true);
+		config4.addDefault(ItemData.LORE.path(), Arrays.asList("&7A sword crafted out of a", "&7branch from the Tree of Time,", "&7it absorbed enough spiritual", "&7energy to be indestructible"));
+		config4.addDefault(ItemData.FLAGS.path(), Arrays.asList(ItemFlag.HIDE_ATTRIBUTES.toString(), ItemFlag.HIDE_ENCHANTS.toString()));
+		config4.addDefault(ItemData.ENCHANTS.path(), Arrays.asList(Enchantment.SWEEPING_EDGE.getKey().getKey() + ":4"));
+		config4.addDefault(MODS_PATH + ".Damage", "x2");
+		config4.addDefault(MODS_PATH + ".Speed", "x1.4");
+		config4.addDefault(MODS_PATH + ".Duration", "x3,/2");
+		config4.addDefault(MODS_PATH + ".Cooldown", "/2");
+		config4.addDefault(MODS_PATH + ".ChargeTime", "/2");
 		
 		try {
 			config1.save(example1);
