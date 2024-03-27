@@ -4,8 +4,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Color;
 import org.bukkit.DyeColor;
+import org.bukkit.Location;
 import org.bukkit.Registry;
+import org.bukkit.World;
 import org.bukkit.block.banner.Pattern;
 import org.bukkit.block.banner.PatternType;
 import org.bukkit.block.data.BlockData;
@@ -17,7 +20,9 @@ import org.bukkit.inventory.meta.AxolotlBucketMeta;
 import org.bukkit.inventory.meta.BannerMeta;
 import org.bukkit.inventory.meta.BlockDataMeta;
 import org.bukkit.inventory.meta.BookMeta;
+import org.bukkit.inventory.meta.CompassMeta;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.LeatherArmorMeta;
 import org.bukkit.inventory.meta.trim.ArmorTrim;
 import org.bukkit.inventory.meta.trim.TrimMaterial;
 import org.bukkit.inventory.meta.trim.TrimPattern;
@@ -54,6 +59,15 @@ public class ItemMetaParser implements ItemDataParser {
     private static final String BOOK_AUTHOR = BOOK + ".Author";
     private static final String BOOK_GENERATION = BOOK + ".Generation";
     private static final String BOOK_PAGES = BOOK + ".Pages";
+    
+    private static final String COMPASS = PATH + ".Compass";
+    private static final String COMPASS_TARGET_WORLD = COMPASS + ".TargetWorld";
+    private static final String COMPASS_TARGET_X = COMPASS + ".TargetX";
+    private static final String COMPASS_TARGET_Y = COMPASS + ".TargetY";
+    private static final String COMPASS_TARGET_Z = COMPASS + ".TargetZ";
+    
+    private static final String LEATHER_ARMOR = PATH + ".LeatherArmor";
+    private static final String LEATHER_ARMOR_COLOR = LEATHER_ARMOR + ".Color";
 
     @Override
     public String getPath() {
@@ -82,6 +96,14 @@ public class ItemMetaParser implements ItemDataParser {
         
         if (config.contains(BOOK) && meta instanceof BookMeta bookMeta) {
             parseBook(name, bookMeta, config);
+        }
+        
+        if (config.contains(COMPASS) && meta instanceof CompassMeta compassMeta) {
+        	parseCompass(name, compassMeta, config);
+        }
+        
+        if (config.contains(LEATHER_ARMOR) && meta instanceof LeatherArmorMeta armorMeta) {
+        	parseLeatherArmor(name, armorMeta, config);
         }
     }
 
@@ -209,5 +231,80 @@ public class ItemMetaParser implements ItemDataParser {
         
         meta.setGeneration(gen);
         meta.setPages(config.getStringList(BOOK_PAGES).stream().map(s -> ChatColor.translateAlternateColorCodes('&', s)).toList());
+    }
+
+    private void parseCompass(String name, CompassMeta meta, FileConfiguration config) {
+    	if (!config.contains(COMPASS_TARGET_WORLD)) {
+    		JavaPlugin.getPlugin(ItemsPlugin.class).getLogger().warning(COMPASS_TARGET_WORLD + " not found, ignoring Compass meta.");
+            return;
+    	} else if (!config.contains(COMPASS_TARGET_X)) {
+    		JavaPlugin.getPlugin(ItemsPlugin.class).getLogger().warning(COMPASS_TARGET_X + " not found, ignoring Compass meta.");
+            return;
+    	} else if (!config.contains(COMPASS_TARGET_Y)) {
+    		JavaPlugin.getPlugin(ItemsPlugin.class).getLogger().warning(COMPASS_TARGET_Y + " not found, ignoring Compass meta.");
+            return;
+    	} else if (!config.contains(COMPASS_TARGET_Z)) {
+    		JavaPlugin.getPlugin(ItemsPlugin.class).getLogger().warning(COMPASS_TARGET_Z + " not found, ignoring Compass meta.");
+            return;
+    	}
+    	
+    	String value = config.getString(COMPASS_TARGET_WORLD);
+    	World world = Bukkit.getWorld(value);
+    	if (world == null) {
+    		JavaPlugin.getPlugin(ItemsPlugin.class).getLogger().warning("Unable to parse world from '" + value + "' for item '" + name + "', ignoring Compass meta.");
+            return;
+    	}
+    	
+    	value = config.getString(COMPASS_TARGET_X);
+    	double x;
+    	try {
+    		x = Double.parseDouble(value);
+    	} catch (Exception e) {
+    		JavaPlugin.getPlugin(ItemsPlugin.class).getLogger().warning("Unable to parse x coordinate from '" + value + "' for item '" + name + "', ignoring Compass meta.");
+            return;
+    	}
+    	
+    	value = config.getString(COMPASS_TARGET_X);
+    	double y;
+    	try {
+    		y = Double.parseDouble(value);
+    	} catch (Exception e) {
+    		JavaPlugin.getPlugin(ItemsPlugin.class).getLogger().warning("Unable to parse y coordinate from '" + value + "' for item '" + name + "', ignoring Compass meta.");
+            return;
+    	}
+    	
+    	value = config.getString(COMPASS_TARGET_X);
+    	double z;
+    	try {
+    		z = Double.parseDouble(value);
+    	} catch (Exception e) {
+    		JavaPlugin.getPlugin(ItemsPlugin.class).getLogger().warning("Unable to parse z coordinate from '" + value + "' for item '" + name + "', ignoring Compass meta.");
+            return;
+    	}
+    	
+    	meta.setLodestoneTracked(false); //assume there's no lodestone at the target location
+    	meta.setLodestone(new Location(world, x, y, z));
+    }
+    
+    private void parseLeatherArmor(String name, LeatherArmorMeta meta, FileConfiguration config) {
+    	if (!config.contains(LEATHER_ARMOR_COLOR)) {
+    		JavaPlugin.getPlugin(ItemsPlugin.class).getLogger().warning(LEATHER_ARMOR_COLOR + " not found, ignoring LeatherArmor meta.");
+            return;
+    	}
+    	
+    	String value = config.getString(LEATHER_ARMOR_COLOR);
+    	if (value.startsWith("#")) {
+    		value = value.substring(1);
+    	}
+    	
+    	int rgb;
+    	try {
+    		rgb = Integer.parseInt(value, 16);
+    	} catch (Exception e) {
+    		JavaPlugin.getPlugin(ItemsPlugin.class).getLogger().warning("Unable to parse color from '" + value + "' for item '" + name + "', ignoring LeatherArmor meta.");
+            return;
+    	}
+    	
+    	meta.setColor(Color.fromRGB(rgb));
     }
 }

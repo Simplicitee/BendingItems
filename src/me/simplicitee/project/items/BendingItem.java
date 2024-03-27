@@ -40,14 +40,6 @@ public class BendingItem {
 		return name;
 	}
 	
-	public boolean isSimilar(ItemStack item) {
-		if (!item.hasItemMeta() || !item.getItemMeta().hasDisplayName()) {
-			return false;
-		}
-		
-		return this.item.getType() == item.getType() && this.item.getItemMeta().getDisplayName().equals(item.getItemMeta().getDisplayName());
-	}
-	
 	public Usage getUsage() {
 		return usage;
 	}
@@ -119,6 +111,6 @@ public class BendingItem {
 	
 	private static String randomString() {
 		String random = String.valueOf(ThreadLocalRandom.current().nextInt(Integer.MAX_VALUE));
-		return "§" + String.join("§", random.split(""));
+		return "ï¿½" + String.join("ï¿½", random.split(""));
 	}
 }

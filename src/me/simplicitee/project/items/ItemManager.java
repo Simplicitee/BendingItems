@@ -148,7 +148,7 @@ public final class ItemManager {
 		int id = getID(item);
 		BendingItem bItem = ID_CACHE.get(id);
 		
-		if ((bItem == null && id > -1) || (bItem != null && !bItem.isSimilar(item))) {
+		if (bItem == null && id > -1) {
 			removeID(item);
 			return null;
 		}
@@ -172,8 +172,13 @@ public final class ItemManager {
         return EQUIPPED.containsKey(player);
     }
     
-    public static boolean matches(Player player, ItemStack item) {
-        return EQUIPPED.containsKey(player) && EQUIPPED.get(player).isSimilar(item);
+    public static boolean isEquipped(Player player, ItemStack item) {
+    	BendingItem equipped = EQUIPPED.get(player);
+    	if (equipped == null) {
+    		return false;
+    	}
+    	
+    	return equipped == get(item);
     }
 	
 	public static BendingItem register(File file) throws IllegalArgumentException {

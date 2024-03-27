@@ -44,15 +44,9 @@ public class ItemsPlugin extends JavaPlugin implements Listener {
 	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
 	public void onSlotChange(PlayerItemHeldEvent event) {
 		Player player = event.getPlayer();
+		ItemStack equip = player.getInventory().getItem(event.getPreviousSlot());
 		
-		if (ItemManager.equipped(player)) {
-			ItemStack equip = player.getInventory().getItem(event.getPreviousSlot());
-			
-			if (!ItemManager.matches(player, equip)) {
-				ItemManager.unequip(player);
-				return;
-			}
-			
+		if (ItemManager.isEquipped(player, equip)) {
 			player.getInventory().setItem(event.getPreviousSlot(), event.getPlayer().getInventory().getItem(event.getNewSlot()));
 			player.getInventory().setItem(event.getNewSlot(), equip);
 			player.updateInventory();
