@@ -1,7 +1,7 @@
 name: BendingItems
 author: Simplicitee
-api-version: 1.16
-version: 1.7.0
+api-version: 1.20
+version: 1.8.0
 main: me.simplicitee.project.items.ItemsPlugin
 depend: [ProjectKorra]
 permissions:
