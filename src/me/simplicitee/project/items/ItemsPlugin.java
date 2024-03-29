@@ -12,6 +12,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import com.projectkorra.projectkorra.ability.CoreAbility;
 import com.projectkorra.projectkorra.event.AbilityStartEvent;
+import com.projectkorra.projectkorra.event.BendingReloadEvent;
 
 import me.simplicitee.project.items.command.AttributesCommand;
 import me.simplicitee.project.items.command.ItemCommand;
@@ -67,5 +68,11 @@ public class ItemsPlugin extends JavaPlugin implements Listener {
 		if (item != null) {
 			event.getInventory().setResult(item.newStack());
 		}
+	}
+	
+	@EventHandler(priority = EventPriority.MONITOR)
+	public void onPKReload(BendingReloadEvent event) {
+		new ItemCommand();
+		new AttributesCommand();
 	}
 }

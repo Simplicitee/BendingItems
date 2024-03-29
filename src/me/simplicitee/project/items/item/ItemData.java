@@ -9,9 +9,9 @@ import me.simplicitee.project.items.item.parser.DisplayNameParser;
 import me.simplicitee.project.items.item.parser.DurabilityParser;
 import me.simplicitee.project.items.item.parser.EnchantsParser;
 import me.simplicitee.project.items.item.parser.FlagsParser;
+import me.simplicitee.project.items.item.parser.ItemMetaParser;
 import me.simplicitee.project.items.item.parser.LoreParser;
 import me.simplicitee.project.items.item.parser.ModelParser;
-import me.simplicitee.project.items.item.parser.RecipeParser;
 import me.simplicitee.project.items.item.parser.UnbreakableParser;
 import me.simplicitee.project.items.item.parser.UsesParser;
 
@@ -22,9 +22,9 @@ public enum ItemData {
     DURABILITY      (new DurabilityParser()),
     ENCHANTS        (new EnchantsParser()),
     FLAGS           (new FlagsParser()),
+    ITEM_META		(new ItemMetaParser()),
     LORE            (new LoreParser()),
     MODEL           (new ModelParser()),
-    RECIPE          (new RecipeParser()),
     UNBREAKABLE     (new UnbreakableParser()),
     USES            (new UsesParser()),
     ;

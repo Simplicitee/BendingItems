@@ -5,11 +5,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.ThreadLocalRandom;
 
+import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 
 import com.projectkorra.projectkorra.Element;
 import com.projectkorra.projectkorra.ability.CoreAbility;
@@ -27,13 +26,15 @@ public class BendingItem {
 	private Usage usage;
 	private Element element;
 	private Map<String, List<BendingModifier>> mods;
+	private final FileConfiguration config;
 	
-	public BendingItem(String name, ItemStack item, Usage usage, Element element, Map<String, List<BendingModifier>> mods) {
+	public BendingItem(String name, ItemStack item, Usage usage, Element element, Map<String, List<BendingModifier>> mods, FileConfiguration config) {
 		this.name = name;
 		this.item = item;
 		this.usage = usage;
 		this.element = element;
 		this.mods = mods;
+		this.config = config;
 	}
 	
 	public String getInternalName() {
@@ -52,14 +53,16 @@ public class BendingItem {
 		return item.getItemMeta().getDisplayName();
 	}
 	
+	public ItemStack internal() {
+		return item;
+	}
+	
+	public FileConfiguration config() {
+		return config;
+	}
+	
 	public ItemStack newStack() {
-		ItemStack stack = item.clone();
-		ItemMeta meta = stack.getItemMeta();
-		List<String> lore = meta.getLore();
-		lore.add(1, randomString());
-		meta.setLore(lore);
-		stack.setItemMeta(meta);
-		return stack;
+		return item.clone();
 	}
 	
 	public List<String> listMods() {
@@ -107,10 +110,5 @@ public class BendingItem {
 	
 	public DisplayItem toDisplay() {
 		return new DisplayItem(item, (p, g) -> give(p));
-	}
-	
-	private static String randomString() {
-		String random = String.valueOf(ThreadLocalRandom.current().nextInt(Integer.MAX_VALUE));
-		return "�" + String.join("�", random.split(""));
 	}
 }

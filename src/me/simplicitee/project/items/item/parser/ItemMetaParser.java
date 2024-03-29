@@ -305,6 +305,6 @@ public class ItemMetaParser implements ItemDataParser {
             return;
     	}
     	
-    	meta.setColor(Color.fromRGB(rgb));
+    	meta.setColor(Color.fromRGB(rgb));	
     }
 }

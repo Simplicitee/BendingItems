@@ -26,6 +26,7 @@ import com.projectkorra.projectkorra.ability.CoreAbility;
 
 import me.simplicitee.project.items.BendingItem.Usage;
 import me.simplicitee.project.items.item.ItemData;
+import me.simplicitee.project.items.item.RecipeParser;
 import net.md_5.bungee.api.ChatColor;
 
 public final class ItemManager {
@@ -245,7 +246,7 @@ public final class ItemManager {
 			}
 		}
 		
-		BendingItem bItem = new BendingItem(name, item, usage, element, mods);
+		BendingItem bItem = new BendingItem(name, item, usage, element, mods, config);
 		NAME_CACHE.put(name, bItem);
 		ID_CACHE.put(id, bItem);
 		return bItem;
@@ -388,6 +389,10 @@ public final class ItemManager {
 		
 		for (File file : folder.listFiles()) {
 			register(file);
+		}
+		
+		for (BendingItem item : ID_CACHE.values()) {
+			RecipeParser.apply(item);
 		}
 	}
 	

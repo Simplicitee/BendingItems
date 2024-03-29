@@ -1,4 +1,4 @@
-package me.simplicitee.project.items.item.parser;
+package me.simplicitee.project.items.item;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -8,31 +8,30 @@ import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.Recipe;
+import org.bukkit.inventory.CraftingRecipe;
+import org.bukkit.inventory.RecipeChoice;
 import org.bukkit.inventory.ShapedRecipe;
 import org.bukkit.inventory.ShapelessRecipe;
-import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import me.simplicitee.project.items.BendingItem;
+import me.simplicitee.project.items.ItemManager;
 import me.simplicitee.project.items.ItemsPlugin;
-import me.simplicitee.project.items.item.ItemDataParser;
 
-public class RecipeParser implements ItemDataParser {
+public final class RecipeParser {
 
     private static final String PATH = "Recipe";
     private static final char[] CHARS = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'};
     
-    @Override
-    public String getPath() {
-        return PATH;
-    }
-
-    @Override
-    public void apply(String name, ItemStack item, ItemMeta meta, FileConfiguration config) {
+    private RecipeParser() {}
+    
+    public static void apply(BendingItem item) {
+    	FileConfiguration config = item.config();
         if (!config.contains(PATH)) return;
         
         Logger logger = JavaPlugin.getPlugin(ItemsPlugin.class).getLogger();
+        String name = item.getInternalName();
+        
         
         if (!config.contains(PATH + ".Ingredients")) {
             logger.warning("Recipe for '" + name + "' requires a list of ingredients under the config path 'Recipe.Ingredients'");
@@ -55,18 +54,28 @@ public class RecipeParser implements ItemDataParser {
             logger.warning("Ingredients list for '" + name + "' recipe cannot be longer than 9 items!");
             return;
         }
-        
-        List<Material> mats = new ArrayList<>();
+        List<RecipeChoice> mats = new ArrayList<>();
         for (String mat : ingredients) {
+        	if (mat.startsWith("EXACT:")) {
+        		BendingItem bItem = ItemManager.get(mat.substring(6));
+        		if (bItem == item) {
+        			logger.warning("Recipe for '" + name + "' contains self, ignoring recipe.");
+        			return;
+        		}
+        		
+        		mats.add(new RecipeChoice.ExactChoice(bItem.internal()));
+        		continue;
+        	}
+        	
             try {
-                mats.add(Material.valueOf(mat.toUpperCase()));
+                mats.add(new RecipeChoice.MaterialChoice(Material.valueOf(mat.toUpperCase())));
             } catch (Exception e) {
                 logger.warning("Unable to parse material from '" + mat + "' in '" + name + "' recipe!");
                 return;
             }
         }
         
-        Recipe recipe = null;
+        CraftingRecipe recipe = null;
         
         if (isShaped) {
             if (!config.contains(PATH + ".Shape")) {
@@ -74,19 +83,22 @@ public class RecipeParser implements ItemDataParser {
                 return;
             }
             
-            ShapedRecipe shaped = new ShapedRecipe(new NamespacedKey(JavaPlugin.getPlugin(ItemsPlugin.class), name), item);
-            
+            ShapedRecipe shaped = new ShapedRecipe(new NamespacedKey(JavaPlugin.getPlugin(ItemsPlugin.class), name), item.internal());
             shaped.shape(config.getStringList(PATH + ".Shape").toArray(new String[0]));
             
             for (int i = 0; i < ingredients.size(); ++i) {
                 shaped.setIngredient(CHARS[i], mats.get(i));
             }
-        } else {
-            ShapelessRecipe shapeless = new ShapelessRecipe(new NamespacedKey(JavaPlugin.getPlugin(ItemsPlugin.class), name), item);
             
-            for (Material ingredient : mats) {
+            recipe = shaped;
+        } else {
+            ShapelessRecipe shapeless = new ShapelessRecipe(new NamespacedKey(JavaPlugin.getPlugin(ItemsPlugin.class), name), item.internal());
+            
+            for (RecipeChoice ingredient : mats) {
                 shapeless.addIngredient(ingredient);
             }
+            
+            recipe = shapeless;
         }
         
         Bukkit.addRecipe(recipe);
