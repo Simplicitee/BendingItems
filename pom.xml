@@ -2,7 +2,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>project</groupId>
 	<artifactId>items</artifactId>
-	<version>1.9.0</version>
+	<version>1.9.1</version>
 	<name>BendingItems</name>
 
 	<repositories>

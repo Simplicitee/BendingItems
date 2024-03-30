@@ -239,10 +239,17 @@ public final class ItemManager {
 		if (config.contains(MODS_PATH)) {
 			mods = new HashMap<>();
 			
-			for (String key : config.getConfigurationSection(MODS_PATH).getKeys(false)) {
-			    String ability = key.equalsIgnoreCase("Base") ? null : key.toLowerCase(); 
+			ConfigurationSection section = config.getConfigurationSection(MODS_PATH);
+			for (String key : section.getKeys(false)) {
+			    String ability = key.equalsIgnoreCase("Base") ? null : key.toLowerCase();
 			    
-				mods.put(ability, loadMods(config.getConfigurationSection(MODS_PATH + "." + key)));
+			    ConfigurationSection inner = section.getConfigurationSection(key);
+			    if (inner == null) {
+			        JavaPlugin.getPlugin(ItemsPlugin.class).getLogger().warning("Error when parsing mods section of '" + name + "', key '" + key + "' has no subkeys. Did you forget the ability or Base?");
+			        continue;
+			    }
+			    
+				mods.put(ability, loadMods(inner));
 			}
 		}
 		
@@ -362,11 +369,11 @@ public final class ItemManager {
 		config4.addDefault(ItemData.LORE.path(), Arrays.asList("&7A sword crafted out of a", "&7branch from the Tree of Time,", "&7it absorbed enough spiritual", "&7energy to be indestructible"));
 		config4.addDefault(ItemData.FLAGS.path(), Arrays.asList(ItemFlag.HIDE_ATTRIBUTES.toString(), ItemFlag.HIDE_ENCHANTS.toString()));
 		config4.addDefault(ItemData.ENCHANTS.path(), Arrays.asList(Enchantment.SWEEPING_EDGE.getKey().getKey() + ":4"));
-		config4.addDefault(MODS_PATH + ".Damage", "x2");
-		config4.addDefault(MODS_PATH + ".Speed", "x1.4");
-		config4.addDefault(MODS_PATH + ".Duration", "x3,/2");
-		config4.addDefault(MODS_PATH + ".Cooldown", "/2");
-		config4.addDefault(MODS_PATH + ".ChargeTime", "/2");
+		config4.addDefault(MODS_PATH + ".Base.Damage", "x2");
+		config4.addDefault(MODS_PATH + ".Base.Speed", "x1.4");
+		config4.addDefault(MODS_PATH + ".Base.Duration", "x3,/2");
+		config4.addDefault(MODS_PATH + ".Base.Cooldown", "/2");
+		config4.addDefault(MODS_PATH + ".Base.ChargeTime", "/2");
 		
 		try {
 			config1.save(example1);
